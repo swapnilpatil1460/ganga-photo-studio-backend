@@ -20,7 +20,11 @@ customerSchema.pre('save', async function (next) {
       const lastCustomer = await mongoose.model('Customer').findOne().sort({ createdAt: -1 });
       if (lastCustomer && lastCustomer.customerId) {
         // Assuming format CUS-1001
-        const lastNumber = parseInt(lastCustomer.customerId.split('-')[1]);
+        const parts = lastCustomer.customerId.split('-');
+        let lastNumber = 1000;
+        if (parts.length > 1 && !isNaN(parseInt(parts[1]))) {
+          lastNumber = parseInt(parts[1]);
+        }
         this.customerId = `CUS-${lastNumber + 1}`;
       } else {
         this.customerId = 'CUS-1001';

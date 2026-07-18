@@ -213,8 +213,8 @@ router.post('/', authenticateToken, async (req, res) => {
 
       res.status(201).json({ customer: newCust, credentials: generatedPassword ? { email: newCust.email, password: generatedPassword } : null });
     }
-  } catch (error) {
-    res.status(400).json({ message: 'Error creating customer', error });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message ? `Error: ${error.message}` : 'Error creating customer', error });
   }
 });
 
@@ -253,8 +253,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     if (isDbConnected()) {
-      const deleted = await Customer.findByIdAndUpdate(req.params.id, { deleted: true }, { new: true });
-      if (!deleted) return res.status(404).json({ message: 'Customer not found' });
+      const customer = await Customer.findById(req.params.id);
+      if (!customer) return res.status(404).json({ message: 'Customer not found' });
+      customer.deleted = true;
+      customer.phone = `${customer.phone}_deleted_${Date.now()}`;
+      if (customer.email) customer.email = `${customer.email}_deleted_${Date.now()}`;
+      await customer.save();
       res.json({ message: 'Customer deleted successfully' });
     } else {
       const index = mockCustomers.findIndex(c => c._id === req.params.id);
