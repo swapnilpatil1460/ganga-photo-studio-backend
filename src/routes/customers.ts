@@ -1,7 +1,9 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { Customer } from '../models/Customer';
+import { User } from '../models/User';
 import { authenticateToken } from '../middleware/auth';
+import { mockUsers } from './users';
 
 const router = express.Router();
 
@@ -134,6 +136,23 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // POST new customer
 router.post('/', authenticateToken, async (req, res) => {
   try {
+    const generatePassword = (name: string) => {
+      const firstName = (name.split(' ')[0] || 'User').replace(/[^a-zA-Z]/g, '');
+      const baseName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+      
+      const numbers = "0123456789";
+      const symbols = "!@#$%^&*";
+      
+      let suffix = "";
+      for (let i = 0; i < 3; i++) suffix += numbers[Math.floor(Math.random() * 10)];
+      suffix += symbols[Math.floor(Math.random() * symbols.length)];
+      
+      let password = baseName + suffix;
+      while (password.length < 8) password += numbers[Math.floor(Math.random() * 10)];
+      
+      return password;
+    };
+
     if (isDbConnected()) {
       // Check duplicate phone
       const existing = await Customer.findOne({ phone: req.body.phone, deleted: false });
@@ -143,7 +162,19 @@ router.post('/', authenticateToken, async (req, res) => {
       
       const customer = new Customer(req.body);
       const saved = await customer.save();
-      res.status(201).json(saved);
+      
+      let generatedPassword = null;
+      if (saved.email) {
+        generatedPassword = generatePassword(saved.name);
+        const user = new User({
+          email: saved.email,
+          password: generatedPassword,
+          role: 'customer'
+        });
+        await user.save();
+      }
+
+      res.status(201).json({ customer: saved, credentials: generatedPassword ? { email: saved.email, password: generatedPassword } : null });
     } else {
       if (mockCustomers.some(c => c.phone === req.body.phone && !c.deleted)) {
         return res.status(400).json({ message: 'Phone number already exists' });
@@ -163,7 +194,19 @@ router.post('/', authenticateToken, async (req, res) => {
         createdAt: new Date()
       };
       mockCustomers.unshift(newCust);
-      res.status(201).json(newCust);
+      
+      let generatedPassword = null;
+      if (newCust.email) {
+        generatedPassword = generatePassword(newCust.name);
+        mockUsers.push({
+          _id: `usr_${Date.now()}`,
+          email: newCust.email,
+          password: generatedPassword,
+          role: 'customer'
+        });
+      }
+
+      res.status(201).json({ customer: newCust, credentials: generatedPassword ? { email: newCust.email, password: generatedPassword } : null });
     }
   } catch (error) {
     res.status(400).json({ message: 'Error creating customer', error });
