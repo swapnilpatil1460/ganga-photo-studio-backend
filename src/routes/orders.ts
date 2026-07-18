@@ -193,8 +193,16 @@ router.get('/', authenticateToken, async (req, res) => {
       if (service) query.service = service;
       if (startDate || endDate) {
         query.createdAt = {};
-        if (startDate) query.createdAt.$gte = new Date(startDate as string);
-        if (endDate) query.createdAt.$lte = new Date(endDate as string);
+        if (startDate) {
+          const start = new Date(startDate as string);
+          start.setHours(0, 0, 0, 0);
+          query.createdAt.$gte = start;
+        }
+        if (endDate) {
+          const end = new Date(endDate as string);
+          end.setHours(23, 59, 59, 999);
+          query.createdAt.$lte = end;
+        }
       }
       if (search) {
         query.$or = [
@@ -217,8 +225,16 @@ router.get('/', authenticateToken, async (req, res) => {
       }
       if (employee) filtered = filtered.filter(o => o.assignedEmployee === employee);
       if (service) filtered = filtered.filter(o => o.service === service);
-      if (startDate) filtered = filtered.filter(o => new Date(o.createdAt) >= new Date(startDate as string));
-      if (endDate) filtered = filtered.filter(o => new Date(o.createdAt) <= new Date(endDate as string));
+      if (startDate) {
+        const start = new Date(startDate as string);
+        start.setHours(0, 0, 0, 0);
+        filtered = filtered.filter(o => new Date(o.createdAt) >= start);
+      }
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        filtered = filtered.filter(o => new Date(o.createdAt) <= end);
+      }
       if (search) filtered = filtered.filter(o => o.orderId.toLowerCase().includes((search as string).toLowerCase()));
 
       // Populate mock customers
