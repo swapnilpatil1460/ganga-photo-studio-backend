@@ -14,26 +14,21 @@ const customerSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Pre-save hook to generate customerId
-customerSchema.pre('save', async function (next) {
+customerSchema.pre('save', async function () {
   if (this.isNew) {
-    try {
-      const lastCustomer = await mongoose.model('Customer').findOne().sort({ createdAt: -1 });
-      if (lastCustomer && lastCustomer.customerId) {
-        // Assuming format CUS-1001
-        const parts = lastCustomer.customerId.split('-');
-        let lastNumber = 1000;
-        if (parts.length > 1 && !isNaN(parseInt(parts[1]))) {
-          lastNumber = parseInt(parts[1]);
-        }
-        this.customerId = `CUS-${lastNumber + 1}`;
-      } else {
-        this.customerId = 'CUS-1001';
+    const lastCustomer = await mongoose.model('Customer').findOne().sort({ createdAt: -1 });
+    if (lastCustomer && lastCustomer.customerId) {
+      // Assuming format CUS-1001
+      const parts = lastCustomer.customerId.split('-');
+      let lastNumber = 1000;
+      if (parts.length > 1 && !isNaN(parseInt(parts[1]))) {
+        lastNumber = parseInt(parts[1]);
       }
-    } catch (error: any) {
-      return next(error);
+      this.customerId = `CUS-${lastNumber + 1}`;
+    } else {
+      this.customerId = 'CUS-1001';
     }
   }
-  next();
 });
 
 export const Customer = mongoose.model('Customer', customerSchema);
