@@ -78,7 +78,7 @@ router.post('/', authenticateToken, async (req, res) => {
       const user = new User({
         email: savedEmployee.email,
         password: generatedPassword,
-        role: (empData.role || 'employee').toLowerCase()
+        role: 'employee'
       });
       await user.save();
 
@@ -99,7 +99,7 @@ router.post('/', authenticateToken, async (req, res) => {
         _id: `usr_${Date.now()}`,
         email: newEmployee.email,
         password: generatedPassword,
-        role: (empData.role || 'employee').toLowerCase()
+        role: 'employee'
       });
       
       res.status(201).json({ employee: newEmployee, credentials: { email: newEmployee.email, password: generatedPassword } });
