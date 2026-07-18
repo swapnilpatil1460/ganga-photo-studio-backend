@@ -307,8 +307,8 @@ router.post('/', authenticateToken, async (req, res) => {
       
       res.status(201).json(newOrder);
     }
-  } catch (error) {
-    res.status(400).json({ message: 'Error creating order', error });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message ? `Error: ${error.message}` : 'Error creating order', error });
   }
 });
 

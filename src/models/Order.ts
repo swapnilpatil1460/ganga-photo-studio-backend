@@ -35,26 +35,25 @@ const orderSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Pre-save hook to generate orderId
-orderSchema.pre('save', async function (next) {
+orderSchema.pre('save', async function () {
   if (this.isNew) {
-    try {
-      const lastOrder = await mongoose.model('Order').findOne().sort({ createdAt: -1 });
-      if (lastOrder && lastOrder.orderId) {
-        const lastNumber = parseInt(lastOrder.orderId.split('-')[1]);
-        this.orderId = `ORD-${lastNumber + 1}`;
-      } else {
-        this.orderId = 'ORD-2001';
+    const lastOrder = await mongoose.model('Order').findOne().sort({ createdAt: -1 });
+    if (lastOrder && lastOrder.orderId) {
+      const parts = lastOrder.orderId.split('-');
+      let lastNumber = 2000;
+      if (parts.length > 1 && !isNaN(parseInt(parts[1]))) {
+        lastNumber = parseInt(parts[1]);
       }
-      
-      // Initialize timeline if empty
-      if (this.timeline.length === 0) {
-        this.timeline.push({ status: 'Received', timestamp: new Date() });
-      }
-    } catch (error: any) {
-      return next(error);
+      this.orderId = `ORD-${lastNumber + 1}`;
+    } else {
+      this.orderId = 'ORD-2001';
+    }
+    
+    // Initialize timeline if empty
+    if (this.timeline.length === 0) {
+      this.timeline.push({ status: 'Received', timestamp: new Date() });
     }
   }
-  next();
 });
 
 export const Order = mongoose.model('Order', orderSchema);
