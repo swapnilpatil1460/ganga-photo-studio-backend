@@ -166,12 +166,17 @@ router.post('/', authenticateToken, async (req, res) => {
       let generatedPassword = null;
       if (saved.email) {
         generatedPassword = generatePassword(saved.name);
-        const user = new User({
-          email: saved.email,
-          password: generatedPassword,
-          role: 'customer'
-        });
-        await user.save();
+        try {
+          const user = new User({
+            email: saved.email,
+            password: generatedPassword,
+            role: 'customer'
+          });
+          await user.save();
+        } catch (err) {
+          console.error("Error creating user for customer:", err);
+          generatedPassword = null; // Do not return credentials if user creation failed
+        }
       }
 
       res.status(201).json({ customer: saved, credentials: generatedPassword ? { email: saved.email, password: generatedPassword } : null });
