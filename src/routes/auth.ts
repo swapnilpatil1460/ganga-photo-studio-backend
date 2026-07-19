@@ -1,7 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
-import { mockUsers } from './users';
 
 const router = express.Router();
 
@@ -45,28 +44,15 @@ router.post('/login', async (req, res) => {
       return;
     }
 
-    if (process.env.MONGODB_URI) {
-      const user = await User.findOne({ email });
-      if (user && user.password === password) {
-        const token = jwt.sign(
-          { userId: user._id, email, role: user.role },
-          process.env.JWT_SECRET || 'fallback_secret',
-          { expiresIn: '8h' }
-        );
-        res.json({ token, user: { email: user.email, role: user.role } });
-        return;
-      }
-    } else {
-      const mockUser = mockUsers.find(u => u.email === email);
-      if (mockUser && mockUser.password === password) {
-        const token = jwt.sign(
-          { userId: mockUser._id, email, role: mockUser.role },
-          process.env.JWT_SECRET || 'fallback_secret',
-          { expiresIn: '8h' }
-        );
-        res.json({ token, user: { email: mockUser.email, role: mockUser.role } });
-        return;
-      }
+    const user = await User.findOne({ email });
+    if (user && user.password === password) {
+      const token = jwt.sign(
+        { userId: user._id, email, role: user.role },
+        process.env.JWT_SECRET || 'fallback_secret',
+        { expiresIn: '8h' }
+      );
+      res.json({ token, user: { email: user.email, role: user.role } });
+      return;
     }
 
     res.status(401).json({ message: 'Invalid credentials' });

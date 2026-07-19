@@ -22,9 +22,13 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 if (process.env.MONGODB_URI) {
   mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
-    .catch((err) => console.error('MongoDB connection error:', err));
+    .catch((err) => {
+      console.error('CRITICAL: MongoDB connection error. The server cannot run without a database:', err);
+      process.exit(1);
+    });
 } else {
-  console.log('No MONGODB_URI provided. Running without database connection.');
+  console.error('CRITICAL: No MONGODB_URI provided in environment variables. The server cannot start.');
+  process.exit(1);
 }
 
 app.use('/api/auth', authRoutes);
