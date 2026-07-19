@@ -34,6 +34,11 @@ const orderSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
+orderSchema.index({ status: 1 });
+orderSchema.index({ createdAt: -1 });
+orderSchema.index({ assignedEmployee: 1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+
 // Pre-save hook to generate orderId
 orderSchema.pre('save', async function () {
   if (this.isNew) {

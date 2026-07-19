@@ -10,8 +10,26 @@ const router = express.Router();
 // GET all employees
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const employees = await Employee.find().sort({ createdAt: -1 });
-    res.json(employees);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    const employees = await Employee.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+      
+    const total = await Employee.countDocuments();
+
+    res.json({
+      data: employees,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching employees' });
   }

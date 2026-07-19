@@ -1,65 +1,58 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { body, validationResult } from 'express-validator';
+import rateLimit from 'express-rate-limit';
 import { User } from '../models/User';
 
 const router = express.Router();
 
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 5,
+  message: 'Too many login attempts, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
-    if (!email || !password) {
-      res.status(400).json({ message: 'Email and password are required' });
-      return;
-    }
+router.post(
+  '/login',
+  loginLimiter,
+  [
+    body('email').isEmail().withMessage('Please provide a valid email'),
+    body('password').notEmpty().withMessage('Password is required')
+  ],
+  async (req: any, res: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
-    if (email === 'owner@ganga.com' && password === 'owner123') {
-      const token = jwt.sign(
-        { email, role: 'owner' },
-        process.env.JWT_SECRET || 'fallback_secret',
-        { expiresIn: '8h' }
-      );
-      res.json({ token, user: { email, role: 'owner' } });
-      return;
-    }
+      const { email, password } = req.body;
 
-    if (email === 'emp@ganga.com' && password === 'emp123') {
-      const token = jwt.sign(
-        { email, role: 'employee' },
-        process.env.JWT_SECRET || 'fallback_secret',
-        { expiresIn: '8h' }
-      );
-      res.json({ token, user: { email, role: 'employee' } });
-      return;
-    }
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
 
-    // Keep old admin demo working just in case
-    if (email === 'admin@ganga.com' && password === 'admin123') {
-      const token = jwt.sign(
-        { email, role: 'owner' },
-        process.env.JWT_SECRET || 'fallback_secret',
-        { expiresIn: '8h' }
-      );
-      res.json({ token, user: { email, role: 'owner' } });
-      return;
-    }
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
 
-    const user = await User.findOne({ email });
-    if (user && user.password === password) {
       const token = jwt.sign(
         { userId: user._id, email, role: user.role },
         process.env.JWT_SECRET || 'fallback_secret',
         { expiresIn: '8h' }
       );
+      
       res.json({ token, user: { email: user.email, role: user.role } });
-      return;
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Server error' });
     }
-
-    res.status(401).json({ message: 'Invalid credentials' });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
   }
-});
+);
 
 export default router;

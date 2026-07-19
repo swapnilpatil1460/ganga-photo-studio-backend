@@ -14,4 +14,6 @@ const scheduleSchema = new mongoose.Schema({
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
 }, { timestamps: true });
 
+scheduleSchema.index({ date: 1, startTime: 1 });
+
 export const Schedule = mongoose.model('Schedule', scheduleSchema);

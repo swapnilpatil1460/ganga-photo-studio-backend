@@ -145,8 +145,27 @@ router.get('/', authenticateToken, async (req, res) => {
       // Populate customer to search by customer name is tricky, so we'll just search orderId
     }
 
-    const orders = await Order.find(query).populate('customer').sort({ createdAt: -1 });
-    res.json(orders);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    const orders = await Order.find(query)
+      .populate('customer')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+      
+    const total = await Order.countDocuments(query);
+
+    res.json({
+      data: orders,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching orders' });
   }

@@ -7,7 +7,17 @@ const router = express.Router();
 // Get all schedules
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const schedules = await Schedule.find({}).sort({ date: 1, startTime: 1 });
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    const schedules = await Schedule.find({})
+      .sort({ date: 1, startTime: 1 })
+      .skip(skip)
+      .limit(limit);
+      
+    const total = await Schedule.countDocuments();
+
     // Map _id to id for the frontend
     const mapped = schedules.map(s => ({
       id: s._id.toString(),
@@ -22,7 +32,16 @@ router.get('/', authenticateToken, async (req, res) => {
       assignedTo: s.assignedTo,
       notes: s.notes
     }));
-    res.json(mapped);
+    
+    res.json({
+      data: mapped,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ message: 'Error fetching schedules', error: error.message });
   }

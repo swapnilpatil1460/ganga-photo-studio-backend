@@ -2,6 +2,7 @@ import express from 'express';
 import { Customer } from '../models/Customer';
 import { User } from '../models/User';
 import { authenticateToken } from '../middleware/auth';
+import { body, validationResult } from 'express-validator';
 
 const router = express.Router();
 
@@ -70,55 +71,69 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST new customer
-router.post('/', authenticateToken, async (req, res) => {
-  try {
-    const generatePassword = (name: string) => {
-      const firstName = (name.split(' ')[0] || 'User').replace(/[^a-zA-Z]/g, '');
-      const baseName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-      
-      const numbers = "0123456789";
-      const symbols = "!@#$%^&*";
-      
-      let suffix = "";
-      for (let i = 0; i < 3; i++) suffix += numbers[Math.floor(Math.random() * 10)];
-      suffix += symbols[Math.floor(Math.random() * symbols.length)];
-      
-      let password = baseName + suffix;
-      while (password.length < 8) password += numbers[Math.floor(Math.random() * 10)];
-      
-      return password;
-    };
-
-    // Check duplicate phone
-    const existing = await Customer.findOne({ phone: req.body.phone, deleted: false });
-    if (existing) {
-      return res.status(400).json({ message: 'Phone number already exists' });
-    }
-    
-    const customer = new Customer(req.body);
-    const saved = await customer.save();
-    
-    let generatedPassword = null;
-    if (saved.email) {
-      generatedPassword = generatePassword(saved.name);
-      try {
-        const user = new User({
-          email: saved.email,
-          password: generatedPassword,
-          role: 'customer'
-        });
-        await user.save();
-      } catch (err) {
-        console.error("Error creating user for customer:", err);
-        generatedPassword = null; // Do not return credentials if user creation failed
+router.post(
+  '/',
+  authenticateToken,
+  [
+    body('name').trim().notEmpty().withMessage('Name is required').escape(),
+    body('phone').trim().isNumeric().withMessage('Phone must contain only numbers').isLength({ min: 10, max: 15 }).withMessage('Invalid phone length'),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email format').normalizeEmail()
+  ],
+  async (req: any, res: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
       }
-    }
+      
+      const generatePassword = (name: string) => {
+        const firstName = (name.split(' ')[0] || 'User').replace(/[^a-zA-Z]/g, '');
+        const baseName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+        
+        const numbers = "0123456789";
+        const symbols = "!@#$%^&*";
+        
+        let suffix = "";
+        for (let i = 0; i < 3; i++) suffix += numbers[Math.floor(Math.random() * 10)];
+        suffix += symbols[Math.floor(Math.random() * symbols.length)];
+        
+        let password = baseName + suffix;
+        while (password.length < 8) password += numbers[Math.floor(Math.random() * 10)];
+        
+        return password;
+      };
 
-    res.status(201).json({ customer: saved, credentials: generatedPassword ? { email: saved.email, password: generatedPassword } : null });
-  } catch (error: any) {
-    res.status(400).json({ message: error.message ? `Error: ${error.message}` : 'Error creating customer', error });
+      // Check duplicate phone
+      const existing = await Customer.findOne({ phone: req.body.phone, deleted: false });
+      if (existing) {
+        return res.status(400).json({ message: 'Phone number already exists' });
+      }
+      
+      const customer = new Customer(req.body);
+      const saved = await customer.save();
+      
+      let generatedPassword = null;
+      if (saved.email) {
+        generatedPassword = generatePassword(saved.name);
+        try {
+          const user = new User({
+            email: saved.email,
+            password: generatedPassword,
+            role: 'customer'
+          });
+          await user.save(); // Will trigger bcrypt hashing hook
+        } catch (err) {
+          console.error("Error creating user for customer:", err);
+          generatedPassword = null; 
+        }
+      }
+
+      res.status(201).json({ customer: saved, credentials: generatedPassword ? { email: saved.email, password: generatedPassword } : null });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message ? `Error: ${error.message}` : 'Error creating customer', error });
+    }
   }
-});
+);
 
 // PUT update customer
 router.put('/:id', authenticateToken, async (req, res) => {

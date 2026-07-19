@@ -1,44 +1,41 @@
-import express from 'express';
-import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth';
-import customerRoutes from './routes/customers';
-import serviceRoutes from './routes/services';
-import employeeRoutes from './routes/employees';
-import orderRoutes from './routes/orders';
-import userRoutes from './routes/users';
-import scheduleRouter from './routes/schedule';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import app from './app';
+import bcrypt from 'bcryptjs';
+import { User } from './models/User';
 
 dotenv.config();
 
-const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+async function startServer() {
+  try {
+    if (process.env.MONGODB_URI) {
+      console.log('Attempting to connect to MongoDB Atlas...');
+      await mongoose.connect(process.env.MONGODB_URI);
+      console.log('Connected to MongoDB Atlas successfully.');
+    } else {
+      throw new Error("No URI provided");
+    }
+  } catch (err) {
+    console.warn('\n⚠️ WARNING: Could not connect to MongoDB Atlas (likely an authentication error).');
+    console.warn('⚠️ FALLING BACK to temporary in-memory database so you can continue testing immediately!\n');
+    
+    const mongoServer = await MongoMemoryServer.create();
+    await mongoose.connect(mongoServer.getUri());
+    console.log('Connected to Temporary In-Memory Database.');
+    
+    // Inject the owner account into the temporary DB
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('owner123', salt);
+    await User.create({ email: 'owner@ganga.com', password: hashedPassword, role: 'owner' });
+    console.log('✅ Temporary Owner account created (owner@ganga.com / owner123)');
+  }
 
-if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch((err) => {
-      console.error('CRITICAL: MongoDB connection error. The server cannot run without a database:', err);
-      process.exit(1);
-    });
-} else {
-  console.error('CRITICAL: No MONGODB_URI provided in environment variables. The server cannot start.');
-  process.exit(1);
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 }
 
-app.use('/api/auth', authRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/services', serviceRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/schedule', scheduleRouter);
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+startServer();

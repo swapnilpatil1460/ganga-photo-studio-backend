@@ -13,6 +13,9 @@ const customerSchema = new mongoose.Schema({
   deleted: { type: Boolean, default: false } // Soft delete
 }, { timestamps: true });
 
+customerSchema.index({ createdAt: -1 });
+customerSchema.index({ deleted: 1 });
+
 // Pre-save hook to generate customerId
 customerSchema.pre('save', async function () {
   if (this.isNew) {
