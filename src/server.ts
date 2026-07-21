@@ -26,10 +26,8 @@ async function startServer() {
     await mongoose.connect(mongoServer.getUri());
     console.log('Connected to Temporary In-Memory Database.');
     
-    // Inject the owner account into the temporary DB
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('owner123', salt);
-    await User.create({ email: 'owner@ganga.com', password: hashedPassword, role: 'owner' });
+    // Inject the owner account into the temporary DB (pre-save hook will hash it!)
+    await User.create({ email: 'owner@ganga.com', password: 'owner123', role: 'owner' });
     console.log('✅ Temporary Owner account created (owner@ganga.com / owner123)');
   }
 
