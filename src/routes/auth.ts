@@ -36,7 +36,18 @@ router.post(
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
-      const isMatch = await bcrypt.compare(password, user.password);
+      let isMatch = false;
+      if (user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$'))) {
+        isMatch = await bcrypt.compare(password, user.password);
+      } else {
+        // Fallback for legacy plaintext passwords in live DB. If it matches, upgrade it automatically!
+        if (user.password === password) {
+           isMatch = true;
+           user.password = password; // Triggers the mongoose pre-save hook to hash it
+           await user.save();
+        }
+      }
+
       if (!isMatch) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
