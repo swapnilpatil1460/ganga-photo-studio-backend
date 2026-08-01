@@ -14,7 +14,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     return;
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret', (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET as string, (err, user) => {
     if (err) {
       res.sendStatus(403);
       return;

@@ -4,6 +4,7 @@ import { Order } from '../models/Order';
 import { Customer } from '../models/Customer';
 import { authenticateToken } from '../middleware/auth';
 import { EmployeeActivity } from '../models/EmployeeActivity';
+import { orderValidators, validateRequest } from '../middleware/validators';
 
 const router = express.Router();
 
@@ -193,7 +194,7 @@ router.get('/customer/:customerId', authenticateToken, async (req, res) => {
 });
 
 // POST new order
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, orderValidators, validateRequest, async (req, res) => {
   try {
     const orderData = req.body;
     

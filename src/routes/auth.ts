@@ -54,7 +54,7 @@ router.post(
 
       const token = jwt.sign(
         { userId: user._id, email, role: user.role },
-        process.env.JWT_SECRET || 'fallback_secret',
+        process.env.JWT_SECRET as string,
         { expiresIn: '8h' }
       );
       

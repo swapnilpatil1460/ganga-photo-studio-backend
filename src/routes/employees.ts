@@ -4,6 +4,7 @@ import { User } from '../models/User';
 import { authenticateToken } from '../middleware/auth';
 import { Order } from '../models/Order';
 import { EmployeeActivity } from '../models/EmployeeActivity';
+import { employeeValidators, validateRequest } from '../middleware/validators';
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // POST new employee
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, employeeValidators, validateRequest, async (req, res) => {
   try {
     const empData = req.body;
     
@@ -81,7 +82,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update employee (full update)
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, employeeValidators, validateRequest, async (req, res) => {
   try {
     const empData = req.body;
     const employee = await Employee.findByIdAndUpdate(req.params.id, empData, { new: true, runValidators: true });

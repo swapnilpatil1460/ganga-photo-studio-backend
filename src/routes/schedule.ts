@@ -1,6 +1,7 @@
 import express from 'express';
 import { Schedule } from '../models/Schedule';
 import { authenticateToken } from '../middleware/auth';
+import { scheduleValidators, validateRequest } from '../middleware/validators';
 
 const router = express.Router();
 
@@ -48,7 +49,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Create a schedule
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, scheduleValidators, validateRequest, async (req, res) => {
   try {
     const newSchedule = new Schedule(req.body);
     const saved = await newSchedule.save();
@@ -72,7 +73,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Update a schedule
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, scheduleValidators, validateRequest, async (req, res) => {
   try {
     const updated = await Schedule.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ message: 'Schedule not found' });

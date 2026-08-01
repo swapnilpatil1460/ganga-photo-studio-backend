@@ -3,6 +3,7 @@ import { Customer } from '../models/Customer';
 import { User } from '../models/User';
 import { authenticateToken } from '../middleware/auth';
 import { body, validationResult } from 'express-validator';
+import { customerValidators, validateRequest } from '../middleware/validators';
 
 const router = express.Router();
 
@@ -136,7 +137,7 @@ router.post(
 );
 
 // PUT update customer
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, customerValidators, validateRequest, async (req, res) => {
   try {
     // Check duplicate phone if phone is being updated
     if (req.body.phone) {

@@ -7,6 +7,11 @@ import { User } from './models/User';
 
 dotenv.config();
 
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'fallback_secret') {
+  console.error('FATAL ERROR: JWT_SECRET is not properly configured in the environment variables.');
+  process.exit(1);
+}
+
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
