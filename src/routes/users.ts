@@ -27,4 +27,38 @@ router.delete('/:id', authenticateToken, requireRole(['owner']), async (req, res
   }
 });
 
+// POST reset password for user directly
+router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const generatePassword = (email: string) => {
+      const baseName = email.split('@')[0].replace(/[^a-zA-Z]/g, '');
+      const prefix = baseName ? (baseName.charAt(0).toUpperCase() + baseName.slice(1).toLowerCase()) : 'User';
+      
+      const numbers = "0123456789";
+      const symbols = "!@#$%^&*";
+      
+      let suffix = "";
+      for (let i = 0; i < 3; i++) suffix += numbers[Math.floor(Math.random() * 10)];
+      suffix += symbols[Math.floor(Math.random() * symbols.length)];
+      
+      let password = prefix + suffix;
+      while (password.length < 8) {
+        password += numbers[Math.floor(Math.random() * 10)];
+      }
+      return password;
+    };
+
+    const newPassword = generatePassword(user.email);
+    user.password = newPassword;
+    await user.save(); // User schema has a pre-save hook that hashes the password
+
+    res.json({ message: 'Password reset successfully', credentials: { email: user.email, password: newPassword } });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error resetting password', error: error.message || 'Unknown error' });
+  }
+});
+
 export default router;
