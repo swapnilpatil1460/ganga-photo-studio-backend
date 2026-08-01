@@ -182,4 +182,60 @@ router.get('/:id/dashboard', authenticateToken, async (req, res) => {
   }
 });
 
+// POST reset employee password
+router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    const generatePassword = (name: string) => {
+      const firstName = (name.split(' ')[0] || 'User').replace(/[^a-zA-Z]/g, '');
+      const baseName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+      
+      const numbers = "0123456789";
+      const symbols = "!@#$%^&*";
+      
+      let suffix = "";
+      for (let i = 0; i < 3; i++) suffix += numbers[Math.floor(Math.random() * 10)];
+      suffix += symbols[Math.floor(Math.random() * symbols.length)];
+      
+      let password = baseName + suffix;
+      while (password.length < 8) {
+        password += numbers[Math.floor(Math.random() * 10)];
+      }
+      return password;
+    };
+
+    const newPassword = generatePassword(employee.name);
+
+    // Update the User document for this employee
+    const user = await User.findOne({ email: employee.email });
+    if (!user) {
+      // If user doesn't exist for some reason, create it
+      const newUser = new User({
+        email: employee.email,
+        password: newPassword,
+        role: employee.role === 'Owner' ? 'owner' : 'employee'
+      });
+      await newUser.save();
+    } else {
+      user.password = newPassword;
+      await user.save(); // User schema has a pre-save hook that hashes the password
+    }
+
+    // Log the activity
+    await EmployeeActivity.create({
+      employeeId: req.user?.userId || 'System',
+      employeeName: 'Owner',
+      actionType: 'System',
+      orderId: 'SYS-AUTH',
+      description: `Reset password for employee ${employee.name}`
+    });
+
+    res.json({ message: 'Password reset successfully', credentials: { email: employee.email, password: newPassword } });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error resetting password', error: error.message || 'Unknown error' });
+  }
+});
+
 export default router;
