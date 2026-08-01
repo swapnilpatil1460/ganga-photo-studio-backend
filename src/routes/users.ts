@@ -61,4 +61,18 @@ router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), as
   }
 });
 
+// GET password for user (Owner only)
+router.get('/:id/password', authenticateToken, requireRole(['owner']), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user.encryptedPassword) return res.status(400).json({ message: 'Password is encrypted with older one-way hash. Please reset the password once to enable viewing.' });
+
+    const decrypted = require('../utils/crypto').decrypt(user.encryptedPassword);
+    res.json({ credentials: { email: user.email, password: decrypted } });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error retrieving password', error: error.message || 'Unknown error' });
+  }
+});
+
 export default router;
