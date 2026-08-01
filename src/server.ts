@@ -30,10 +30,17 @@ async function startServer() {
     const mongoServer = await MongoMemoryServer.create();
     await mongoose.connect(mongoServer.getUri());
     console.log('Connected to Temporary In-Memory Database.');
-    
-    // Inject the owner account into the temporary DB (pre-save hook will hash it!)
-    await User.create({ email: 'owner@ganga.com', password: 'owner123', role: 'owner' });
-    console.log('✅ Temporary Owner account created (owner@ganga.com / owner123)');
+  }
+
+  // Ensure owner account exists (works for both Atlas and in-memory)
+  try {
+    const existingOwner = await User.findOne({ email: 'owner@ganga.com' });
+    if (!existingOwner) {
+      await User.create({ email: 'owner@ganga.com', password: 'owner123', role: 'owner' });
+      console.log('✅ Owner account created (owner@ganga.com / owner123)');
+    }
+  } catch (seedErr) {
+    console.warn('⚠️ Could not seed owner account:', seedErr);
   }
 
   app.listen(PORT, () => {
