@@ -1,11 +1,12 @@
 import express from 'express';
 import { User } from '../models/User';
 import { authenticateToken } from '../middleware/auth';
+import { requireRole } from '../middleware/roles';
 
 const router = express.Router();
 
 // GET all users
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
     // Passwords are now hashed and properly excluded from API responses for security.
     const users = await User.find({}).select('-password').sort({ _id: -1 });
@@ -16,7 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // DELETE a user
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
     const deletedUser = await User.findByIdAndDelete(req.params.id);
     if (!deletedUser) return res.status(404).json({ message: 'User not found' });

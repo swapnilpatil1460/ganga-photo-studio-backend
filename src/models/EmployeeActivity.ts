@@ -14,4 +14,8 @@ const employeeActivitySchema = new mongoose.Schema({
   durationHours: { type: Number, default: 0 } // Captured if this action completed a phase
 });
 
+employeeActivitySchema.index({ employeeId: 1 });
+employeeActivitySchema.index({ orderId: 1 });
+employeeActivitySchema.index({ timestamp: -1 });
+
 export const EmployeeActivity = mongoose.model('EmployeeActivity', employeeActivitySchema);

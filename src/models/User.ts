@@ -6,6 +6,14 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['owner', 'employee', 'customer'], default: 'employee' },
+  settings: {
+    theme: { type: String, default: 'theme-dashboard' },
+    studioName: { type: String, default: 'Ganga Photo Studio' },
+    email: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    address: { type: String, default: '' },
+    gstId: { type: String, default: '' }
+  }
 });
 
 userSchema.pre('save', async function() {

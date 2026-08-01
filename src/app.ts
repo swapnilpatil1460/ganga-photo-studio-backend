@@ -7,6 +7,7 @@ import employeeRoutes from './routes/employees';
 import orderRoutes from './routes/orders';
 import userRoutes from './routes/users';
 import scheduleRouter from './routes/schedule';
+import settingsRoutes from './routes/settings';
 import rateLimit from 'express-rate-limit';
 
 const app = express();
@@ -22,9 +23,28 @@ const globalLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://ganga-photo-studio-frontend-srock.vercel.app'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
@@ -33,5 +53,6 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/schedule', scheduleRouter);
+app.use('/api/settings', settingsRoutes);
 
 export default app;

@@ -4,6 +4,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from './app';
 import bcrypt from 'bcryptjs';
 import { User } from './models/User';
+import { Service } from './models/Service';
 
 dotenv.config();
 
@@ -41,6 +42,35 @@ async function startServer() {
     }
   } catch (seedErr) {
     console.warn('⚠️ Could not seed owner account:', seedErr);
+  }
+
+  // Ensure default services exist
+  try {
+    const serviceCount = await Service.countDocuments();
+    if (serviceCount === 0) {
+      const mockServices = [
+        { name: 'Flex Printing', basePrice: 500 },
+        { name: 'Photographer Flex Printing', basePrice: 600 },
+        { name: 'Identity / Passport Photo', basePrice: 150 },
+        { name: 'Photography', basePrice: 5000 },
+        { name: 'CopingPhoto', basePrice: 50 },
+        { name: 'Mobile Print', basePrice: 20 },
+        { name: 'Photo Dream', basePrice: 2000 },
+        { name: 'Lamination', basePrice: 50 },
+        { name: 'Photo Album', basePrice: 3000 },
+        { name: 'Trophy', basePrice: 400 },
+        { name: 'Mug Printing', basePrice: 250 },
+        { name: 'Soft Copy/Digital Bord Photo', basePrice: 100 },
+        { name: 'Wedding Album', basePrice: 15000 },
+        { name: 'Video Shooting', basePrice: 10000 },
+        { name: 'Pre./After Wedding', basePrice: 8000 },
+        { name: 'Drone', basePrice: 5000 }
+      ];
+      await Service.insertMany(mockServices);
+      console.log('✅ Seeded default services into MongoDB');
+    }
+  } catch (serviceSeedErr) {
+    console.warn('⚠️ Could not seed default services:', serviceSeedErr);
   }
 
   app.listen(PORT, () => {

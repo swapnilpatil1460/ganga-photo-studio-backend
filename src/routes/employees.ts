@@ -5,6 +5,7 @@ import { authenticateToken } from '../middleware/auth';
 import { Order } from '../models/Order';
 import { EmployeeActivity } from '../models/EmployeeActivity';
 import { employeeValidators, validateRequest } from '../middleware/validators';
+import { requireRole } from '../middleware/roles';
 
 const router = express.Router();
 
@@ -37,7 +38,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // POST new employee
-router.post('/', authenticateToken, employeeValidators, validateRequest, async (req, res) => {
+router.post('/', authenticateToken, requireRole(['owner']), employeeValidators, validateRequest, async (req, res) => {
   try {
     const empData = req.body;
     
@@ -82,7 +83,7 @@ router.post('/', authenticateToken, employeeValidators, validateRequest, async (
 });
 
 // PUT update employee (full update)
-router.put('/:id', authenticateToken, employeeValidators, validateRequest, async (req, res) => {
+router.put('/:id', authenticateToken, requireRole(['owner']), employeeValidators, validateRequest, async (req, res) => {
   try {
     const empData = req.body;
     const employee = await Employee.findByIdAndUpdate(req.params.id, empData, { new: true, runValidators: true });
@@ -94,7 +95,7 @@ router.put('/:id', authenticateToken, employeeValidators, validateRequest, async
 });
 
 // PUT update employee status
-router.put('/:id/status', authenticateToken, async (req, res) => {
+router.put('/:id/status', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
     const { status } = req.body;
     const employee = await Employee.findByIdAndUpdate(req.params.id, { status }, { new: true });
