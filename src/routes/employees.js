@@ -221,5 +221,23 @@ router.post('/:id/reset-password', auth_1.authenticateToken, (0, roles_1.require
         res.status(500).json({ message: 'Error resetting password', error: error.message || 'Unknown error' });
     }
 });
+// GET password for employee (Owner only)
+router.get('/:id/password', auth_1.authenticateToken, (0, roles_1.requireRole)(['owner']), async (req, res) => {
+    try {
+        const employee = await Employee_1.Employee.findById(req.params.id);
+        if (!employee)
+            return res.status(404).json({ message: 'Employee not found' });
+        const user = await User_1.User.findOne({ email: employee.email });
+        if (!user)
+            return res.status(404).json({ message: 'User record not found' });
+        if (!user.encryptedPassword)
+            return res.status(400).json({ message: 'Password is encrypted with older one-way hash. Please reset the password once to enable viewing.' });
+        const decrypted = require('../utils/crypto').decrypt(user.encryptedPassword);
+        res.json({ credentials: { email: user.email, password: decrypted } });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error retrieving password', error: error.message || 'Unknown error' });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=employees.js.map

@@ -3,6 +3,7 @@ export declare const User: mongoose.Model<{
     email: string;
     role: "owner" | "employee" | "customer";
     password: string;
+    encryptedPassword?: string | null;
     settings?: {
         phone: string;
         email: string;
@@ -17,6 +18,7 @@ export declare const User: mongoose.Model<{
     email: string;
     role: "owner" | "employee" | "customer";
     password: string;
+    encryptedPassword?: string | null;
     settings?: {
         phone: string;
         email: string;
@@ -31,6 +33,7 @@ export declare const User: mongoose.Model<{
     email: string;
     role: "owner" | "employee" | "customer";
     password: string;
+    encryptedPassword?: string | null;
     settings?: {
         phone: string;
         email: string;
@@ -49,6 +52,7 @@ export declare const User: mongoose.Model<{
     email: string;
     role: "owner" | "employee" | "customer";
     password: string;
+    encryptedPassword?: string | null;
     settings?: {
         phone: string;
         email: string;
@@ -61,6 +65,7 @@ export declare const User: mongoose.Model<{
     email: string;
     role: "owner" | "employee" | "customer";
     password: string;
+    encryptedPassword?: string | null;
     settings?: {
         phone: string;
         email: string;
@@ -75,6 +80,7 @@ export declare const User: mongoose.Model<{
     email: string;
     role: "owner" | "employee" | "customer";
     password: string;
+    encryptedPassword?: string | null;
     settings?: {
         phone: string;
         email: string;
@@ -93,6 +99,7 @@ export declare const User: mongoose.Model<{
     email: string;
     role: "owner" | "employee" | "customer";
     password: string;
+    encryptedPassword?: string | null;
     settings?: {
         phone: string;
         email: string;
@@ -109,6 +116,7 @@ export declare const User: mongoose.Model<{
     email: string;
     role: "owner" | "employee" | "customer";
     password: string;
+    encryptedPassword?: string | null;
     settings?: {
         phone: string;
         email: string;
