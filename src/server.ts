@@ -13,6 +13,11 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'fallback_secret') {
   process.exit(1);
 }
 
+if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length < 32) {
+  console.error('FATAL ERROR: ENCRYPTION_KEY is not properly configured in the environment variables (must be at least 32 characters).');
+  process.exit(1);
+}
+
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
@@ -35,10 +40,12 @@ async function startServer() {
 
   // Ensure owner account exists (works for both Atlas and in-memory)
   try {
-    const existingOwner = await User.findOne({ email: 'owner@ganga.com' });
-    if (!existingOwner) {
-      await User.create({ email: 'owner@ganga.com', password: 'owner123', role: 'owner' });
-      console.log('✅ Owner account created (owner@ganga.com / owner123)');
+    if (process.env.INITIAL_ADMIN_EMAIL && process.env.INITIAL_ADMIN_PASSWORD) {
+      const existingOwner = await User.findOne({ email: process.env.INITIAL_ADMIN_EMAIL });
+      if (!existingOwner) {
+        await User.create({ email: process.env.INITIAL_ADMIN_EMAIL, password: process.env.INITIAL_ADMIN_PASSWORD, role: 'owner' });
+        console.log(`✅ Owner account created (${process.env.INITIAL_ADMIN_EMAIL})`);
+      }
     }
   } catch (seedErr) {
     console.warn('⚠️ Could not seed owner account:', seedErr);

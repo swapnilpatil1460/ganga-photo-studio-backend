@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import authRoutes from './routes/auth';
 import customerRoutes from './routes/customers';
 import serviceRoutes from './routes/services';
@@ -28,6 +29,8 @@ const allowedOrigins = [
   'https://ganga-photo-studio-frontend-srock.vercel.app'
 ];
 
+app.use(helmet());
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -38,8 +41,8 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

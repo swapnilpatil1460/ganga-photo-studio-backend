@@ -141,7 +141,7 @@ router.get('/', authenticateToken, async (req, res) => {
     }
     if (search) {
       query.$or = [
-        { orderId: { $regex: search, $options: 'i' } }
+        { orderId: { $regex: String(search), $options: 'i' } }
       ];
       // Populate customer to search by customer name is tricky, so we'll just search orderId
     }

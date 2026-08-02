@@ -18,9 +18,9 @@ router.get('/', authenticateToken, async (req, res) => {
 
     let query: any = { deleted: false };
     
-    if (name) query.name = { $regex: name, $options: 'i' };
-    if (phone) query.phone = { $regex: phone, $options: 'i' };
-    if (email) query.email = { $regex: email, $options: 'i' };
+    if (name) query.name = { $regex: String(name), $options: 'i' };
+    if (phone) query.phone = { $regex: String(phone), $options: 'i' };
+    if (email) query.email = { $regex: String(email), $options: 'i' };
     
     if (dateFilter) {
       const now = new Date();
