@@ -29,7 +29,7 @@ const allowedOrigins = [
   'https://ganga-photo-studio-frontend-srock.vercel.app'
 ];
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 
 app.use(cors({
   origin: (origin, callback) => {
