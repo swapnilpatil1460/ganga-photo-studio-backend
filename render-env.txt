@@ -1,0 +1,6 @@
+PORT=5000
+JWT_SECRET=supersecret_ganga_studio_key
+MONGODB_URI=mongodb+srv://Srock:WR4bSqCAZYIzOt6D@ganga.bkj0axh.mongodb.net/ganga-studio?retryWrites=true&w=majority&appName=Ganga
+ENCRYPTION_KEY=12345678901234567890123456789012
+INITIAL_ADMIN_EMAIL=owner@ganga.com
+INITIAL_ADMIN_PASSWORD=owner123

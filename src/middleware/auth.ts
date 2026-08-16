@@ -10,13 +10,13 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    res.sendStatus(401);
+    res.status(401).json({ message: 'Unauthorized: No token provided' });
     return;
   }
 
   jwt.verify(token, process.env.JWT_SECRET as string, (err, user) => {
     if (err) {
-      res.sendStatus(403);
+      res.status(403).json({ message: 'Forbidden: Invalid or expired token' });
       return;
     }
     req.user = user;
