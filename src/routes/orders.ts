@@ -37,7 +37,7 @@ router.get('/analytics', authenticateToken, async (req, res) => {
     ];
 
     // Basic Stats
-    const [total, todayCount, pending, completed, revToday, revMonth, pendingPaymentsResult, Employee] = await Promise.all([
+    const [total, todayCount, pending, completed, revToday, revMonth, pendingPaymentsResult, activeEmployeesCount] = await Promise.all([
       Order.countDocuments(),
       Order.countDocuments({ createdAt: { $gte: today } }),
       Order.countDocuments({ status: { $ne: 'Delivered' } }),
@@ -100,13 +100,14 @@ router.get('/analytics', authenticateToken, async (req, res) => {
       revenueToday: revToday[0]?.total || 0,
       revenueThisMonth: revMonth[0]?.total || 0,
       pendingPayments: pendingPaymentsResult[0]?.totalDue || 0,
-      activeEmployees: Employee || 0,
+      activeEmployees: activeEmployeesCount || 0,
       monthlyRevenue, 
       dailyRevenue: dailyRevenue.map(({day, value}) => ({ day, value })),
       monthlyCustomers, // Still placeholder, needs Customer model
       topServices
     });
   } catch (error) {
+    console.error('Error fetching analytics:', error);
     res.status(500).json({ message: 'Error fetching analytics' });
   }
 });
