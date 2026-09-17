@@ -4,6 +4,7 @@ import { Order } from '../models/Order';
 import { Customer } from '../models/Customer';
 import { authenticateToken } from '../middleware/auth';
 import { EmployeeActivity } from '../models/EmployeeActivity';
+import { Employee } from '../models/Employee';
 import { orderValidators, validateRequest } from '../middleware/validators';
 
 const router = express.Router();
@@ -48,7 +49,7 @@ router.get('/analytics', authenticateToken, async (req, res) => {
         { $match: { due: { $gt: 0 } } },
         { $group: { _id: null, totalDue: { $sum: '$due' } } }
       ]),
-      mongoose.model('Employee').countDocuments({ status: 'Active' }) // Assuming Employee has status Active
+      Employee.countDocuments({ status: 'Active' }) // Assuming Employee has status Active
     ]);
 
     // Service Breakdown
