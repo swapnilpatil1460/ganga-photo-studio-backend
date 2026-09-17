@@ -41,7 +41,11 @@ router.post(
         isMatch = await bcrypt.compare(password, user.password);
       } else {
         // Fallback for legacy plaintext passwords in live DB. If it matches, upgrade it automatically!
-        if (user.password === password) {
+        const crypto = require('crypto');
+        const userHash = crypto.createHash('sha256').update(user.password || '').digest();
+        const reqHash = crypto.createHash('sha256').update(password || '').digest();
+        
+        if (crypto.timingSafeEqual(userHash, reqHash)) {
            isMatch = true;
            user.password = password; // Triggers the mongoose pre-save hook to hash it
            await user.save();
