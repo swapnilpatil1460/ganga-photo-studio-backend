@@ -35,8 +35,8 @@ export const employeeValidators = [
 export const orderValidators = [
   body('customer').notEmpty().withMessage('Customer ID is required').trim(),
   body('service').notEmpty().withMessage('Service type is required').trim(),
-  body('quantity').optional().isNumeric().withMessage('Quantity must be a number'),
-  body('price').optional().isNumeric().withMessage('Price must be a number'),
+  body('quantity').optional().isInt({ min: 1 }).withMessage('Quantity must be an integer of at least 1'),
+  body('price').optional().isFloat({ min: 0 }).withMessage('Price cannot be negative'),
   body('totalAmount').notEmpty().withMessage('Total Amount is required').isNumeric(),
   body('paidAmount').optional().isNumeric(),
   body('expectedDeliveryDate').notEmpty().withMessage('Expected delivery date is required').isISO8601().withMessage('Invalid date format'),

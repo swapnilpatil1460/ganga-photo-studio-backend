@@ -10,8 +10,11 @@ import userRoutes from './routes/users';
 import scheduleRouter from './routes/schedule';
 import settingsRoutes from './routes/settings';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 
 const app = express();
+
+app.use(cookieParser());
 
 // Global rate limiter: max 300 requests per 15 minutes per IP
 const globalLimiter = rateLimit({

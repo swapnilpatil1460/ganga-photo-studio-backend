@@ -58,12 +58,24 @@ router.post(
         { expiresIn: '8h' }
       );
       
-      res.json({ token, user: { email: user.email, role: user.role } });
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 8 * 60 * 60 * 1000 // 8 hours
+      });
+
+      res.json({ user: { email: user.email, role: user.role } });
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: 'Server error' });
     }
   }
 );
+
+router.post('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ message: 'Logged out successfully' });
+});
 
 export default router;

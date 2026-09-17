@@ -198,12 +198,21 @@ router.post('/', authenticateToken, orderValidators, validateRequest, async (req
   try {
     const orderData = req.body;
     
+    // SERVER-SIDE CALCULATION: Never trust client totalAmount
+    const qty = parseInt(orderData.quantity) || 1;
+    const price = parseFloat(orderData.price) || 0;
+    const calculatedTotal = qty * price;
+    
+    orderData.quantity = qty;
+    orderData.price = price;
+    orderData.totalAmount = calculatedTotal;
+    
     const order = new Order(orderData);
     const savedOrder = await order.save();
     
     // Update customer stats
     await Customer.findByIdAndUpdate(orderData.customer, {
-      $inc: { totalOrders: 1, totalSpent: orderData.totalAmount }
+      $inc: { totalOrders: 1, totalSpent: calculatedTotal }
     });
     
     res.status(201).json(savedOrder);
