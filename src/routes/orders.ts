@@ -175,7 +175,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // GET Single Order
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate('customer');
+    const order = await Order.findById(String(req.params.id)).populate('customer');
     if (!order) return res.status(404).json({ message: 'Order not found' });
     res.json(order);
   } catch (error) {
@@ -211,7 +211,7 @@ router.post('/', authenticateToken, orderValidators, validateRequest, async (req
     const savedOrder = await order.save();
     
     // Update customer stats
-    await Customer.findByIdAndUpdate(orderData.customer, {
+    await Customer.findByIdAndUpdate(String(orderData.customer), {
       $inc: { totalOrders: 1, totalSpent: calculatedTotal }
     });
     
@@ -225,7 +225,7 @@ router.post('/', authenticateToken, orderValidators, validateRequest, async (req
 router.put('/:id/status', authenticateToken, async (req, res) => {
   try {
     const { status, changedBy = 'Owner' } = req.body;
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(String(req.params.id));
     if (!order) return res.status(404).json({ message: 'Order not found' });
     
     const prevStatus = order.status;
@@ -258,7 +258,7 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
 router.put('/:id/assign', authenticateToken, async (req, res) => {
   try {
     const { employee, changedBy = 'Owner' } = req.body;
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(String(req.params.id));
     if (!order) return res.status(404).json({ message: 'Order not found' });
     
     order.assignedEmployee = employee;
@@ -290,7 +290,7 @@ router.put('/:id/assign', authenticateToken, async (req, res) => {
 router.put('/:id/payment', authenticateToken, async (req, res) => {
   try {
     const { amount, changedBy = 'Owner' } = req.body;
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(String(req.params.id));
     if (!order) return res.status(404).json({ message: 'Order not found' });
     
     const prevPaid = order.paidAmount || 0;

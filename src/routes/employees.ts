@@ -86,7 +86,7 @@ router.post('/', authenticateToken, requireRole(['owner']), employeeValidators, 
 router.put('/:id', authenticateToken, requireRole(['owner']), employeeValidators, validateRequest, async (req, res) => {
   try {
     const empData = req.body;
-    const employee = await Employee.findByIdAndUpdate(req.params.id, empData, { new: true, runValidators: true });
+    const employee = await Employee.findByIdAndUpdate(String(req.params.id), empData, { new: true, runValidators: true });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     res.json(employee);
   } catch (error: any) {
@@ -98,7 +98,7 @@ router.put('/:id', authenticateToken, requireRole(['owner']), employeeValidators
 router.put('/:id/status', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
     const { status } = req.body;
-    const employee = await Employee.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    const employee = await Employee.findByIdAndUpdate(String(req.params.id), { status }, { new: true });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     res.json(employee);
   } catch (error) {
@@ -109,7 +109,7 @@ router.put('/:id/status', authenticateToken, requireRole(['owner']), async (req,
 // GET single employee details
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    const employee = await Employee.findById(String(req.params.id));
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     res.json(employee);
   } catch (error) {
@@ -185,7 +185,7 @@ router.get('/:id/dashboard', authenticateToken, async (req, res) => {
 // POST reset employee password
 router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    const employee = await Employee.findById(String(req.params.id));
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
     const generatePassword = (name: string) => {
@@ -209,7 +209,7 @@ router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), as
     const newPassword = generatePassword(employee.name);
 
     // Update the User document for this employee
-    const user = await User.findOne({ email: employee.email });
+    const user = await User.findOne({ email: String(employee.email) });
     if (!user) {
       // If user doesn't exist for some reason, create it
       const newUser = new User({
@@ -241,10 +241,10 @@ router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), as
 // GET password for employee (Owner only)
 router.get('/:id/password', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    const employee = await Employee.findById(String(req.params.id));
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     
-    const user = await User.findOne({ email: employee.email });
+    const user = await User.findOne({ email: String(employee.email) });
     if (!user) return res.status(404).json({ message: 'User record not found' });
     
     if (!user.encryptedPassword) return res.status(400).json({ message: 'Password is encrypted with older one-way hash. Please reset the password once to enable viewing.' });

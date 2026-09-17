@@ -55,7 +55,7 @@ router.put('/:id', authenticateToken, requireRole(['owner']), async (req, res) =
 // DELETE service (owner only)
 router.delete('/:id', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
-    const service = await Service.findByIdAndDelete(req.params.id);
+    const service = await Service.findByIdAndDelete(String(req.params.id));
     if (!service) return res.status(404).json({ message: 'Service not found' });
     res.json({ message: 'Service deleted successfully' });
   } catch (error: any) {

@@ -63,7 +63,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // GET Single Customer
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const customer = await Customer.findOne({ _id: req.params.id, deleted: false });
+    const customer = await Customer.findOne({ _id: String(req.params.id), deleted: false });
     if (!customer) return res.status(404).json({ message: 'Customer not found' });
     res.json(customer);
   } catch (error) {
@@ -105,7 +105,7 @@ router.post(
       };
 
       // Check duplicate phone
-      const existing = await Customer.findOne({ phone: req.body.phone, deleted: false });
+      const existing = await Customer.findOne({ phone: String(req.body.phone), deleted: false });
       if (existing) {
         return res.status(400).json({ message: 'Phone number already exists' });
       }
@@ -141,13 +141,13 @@ router.put('/:id', authenticateToken, customerValidators, validateRequest, async
   try {
     // Check duplicate phone if phone is being updated
     if (req.body.phone) {
-      const existing = await Customer.findOne({ phone: req.body.phone, _id: { $ne: req.params.id }, deleted: false });
+      const existing = await Customer.findOne({ phone: String(req.body.phone), _id: { $ne: String(req.params.id) }, deleted: false });
       if (existing) {
         return res.status(400).json({ message: 'Phone number already exists' });
       }
     }
 
-    const updated = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updated = await Customer.findByIdAndUpdate(String(req.params.id), req.body, { new: true });
     if (!updated) return res.status(404).json({ message: 'Customer not found' });
     res.json(updated);
   } catch (error) {
@@ -158,7 +158,7 @@ router.put('/:id', authenticateToken, customerValidators, validateRequest, async
 // DELETE (soft delete) customer
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const customer = await Customer.findById(req.params.id);
+    const customer = await Customer.findById(String(req.params.id));
     if (!customer) return res.status(404).json({ message: 'Customer not found' });
     customer.deleted = true;
     customer.phone = `${customer.phone}_deleted_${Date.now()}`;

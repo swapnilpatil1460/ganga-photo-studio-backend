@@ -19,7 +19,7 @@ router.get('/', authenticateToken, requireRole(['owner']), async (req, res) => {
 // DELETE a user
 router.delete('/:id', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
-    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    const deletedUser = await User.findByIdAndDelete(String(req.params.id));
     if (!deletedUser) return res.status(404).json({ message: 'User not found' });
     res.json({ message: 'User deleted successfully' });
   } catch (error: any) {
@@ -30,7 +30,7 @@ router.delete('/:id', authenticateToken, requireRole(['owner']), async (req, res
 // POST reset password for user directly
 router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(String(req.params.id));
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const generatePassword = (email: string) => {
@@ -64,7 +64,7 @@ router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), as
 // GET password for user (Owner only)
 router.get('/:id/password', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(String(req.params.id));
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (!user.encryptedPassword) return res.status(400).json({ message: 'Password is encrypted with older one-way hash. Please reset the password once to enable viewing.' });
 

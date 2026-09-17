@@ -75,7 +75,7 @@ router.post('/', authenticateToken, scheduleValidators, validateRequest, async (
 // Update a schedule
 router.put('/:id', authenticateToken, scheduleValidators, validateRequest, async (req, res) => {
   try {
-    const updated = await Schedule.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updated = await Schedule.findByIdAndUpdate(String(req.params.id), req.body, { new: true });
     if (!updated) return res.status(404).json({ message: 'Schedule not found' });
     
     res.json({
@@ -99,7 +99,7 @@ router.put('/:id', authenticateToken, scheduleValidators, validateRequest, async
 // Delete a schedule
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const deleted = await Schedule.findByIdAndDelete(req.params.id);
+    const deleted = await Schedule.findByIdAndDelete(String(req.params.id));
     if (!deleted) return res.status(404).json({ message: 'Schedule not found' });
     
     res.json({ message: 'Schedule deleted successfully' });
