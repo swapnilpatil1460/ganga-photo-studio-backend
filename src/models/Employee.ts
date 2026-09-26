@@ -16,7 +16,10 @@ const employeeSchema = new mongoose.Schema({
     default: 'Active' 
   },
   dateJoined: { type: Date, default: Date.now },
-  salary: { type: Number },
+  salaryStructure: {
+    basicSalary: { type: Number, default: 0 },
+    allowances: { type: Number, default: 0 }
+  },
   totalOrdersHandled: { type: Number, default: 0 },
   averageCompletionTime: { type: Number, default: 0 } // in hours
 }, { timestamps: true });

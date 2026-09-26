@@ -28,7 +28,8 @@ export const employeeValidators = [
   body('phone').notEmpty().withMessage('Phone is required').trim(),
   body('role').notEmpty().withMessage('Role is required').isIn(['Owner', 'Manager', 'Editor', 'Printer Operator', 'Photographer', 'Receptionist', 'Helper']).withMessage('Invalid role'),
   body('status').optional().isIn(['Active', 'On Leave', 'Former']).withMessage('Invalid status'),
-  body('salary').optional().isNumeric().withMessage('Salary must be a number')
+  body('salaryStructure.basicSalary').optional().isNumeric().withMessage('Basic salary must be a number'),
+  body('salaryStructure.allowances').optional().isNumeric().withMessage('Allowances must be a number')
 ];
 
 // Order Validations
