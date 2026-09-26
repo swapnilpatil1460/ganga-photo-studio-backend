@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { MongoMemoryServer } from 'mongodb-memory-server';
@@ -5,8 +6,6 @@ import app from './app';
 import bcrypt from 'bcryptjs';
 import { User } from './models/User';
 import { Service } from './models/Service';
-
-dotenv.config();
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'fallback_secret') {
   console.error('FATAL ERROR: JWT_SECRET is not properly configured in the environment variables.');
