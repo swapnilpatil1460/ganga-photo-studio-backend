@@ -104,22 +104,63 @@ router.post('/calculate', authenticateToken, requireRole(['owner', 'manager']), 
   }
 });
 
-// PUT pay salary
+// PUT pay salary (supports full or partial payments)
 router.put('/:id/pay', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
-    const { transactionReference, paymentDate } = req.body;
+    const { transactionReference, paymentDate, amountPaid } = req.body;
     const record = await SalaryRecord.findById(req.params.id);
     if (!record) return res.status(404).json({ message: 'Record not found' });
     
-    if (record.status !== 'Calculated') {
-      return res.status(400).json({ message: 'Salary must be calculated before payment' });
+    if (record.status !== 'Calculated' && record.status !== 'Partial') {
+      return res.status(400).json({ message: 'Salary must be calculated or partially paid before payment' });
     }
 
-    record.status = 'Paid';
-    record.paymentDetails = {
-      paymentDate: paymentDate || new Date(),
-      transactionReference: transactionReference || ''
-    };
+    const netSalary = record.components?.netSalary || 0;
+    const currentPaid = (record.paymentDetails as any)?.paidAmount || 0;
+    const currentRemaining = Math.max(0, netSalary - currentPaid);
+
+    let payAmount = Number(amountPaid);
+    if (isNaN(payAmount) || payAmount <= 0) {
+      payAmount = currentRemaining;
+    }
+
+    if (payAmount > currentRemaining && currentRemaining > 0) {
+      return res.status(400).json({ 
+        message: `Payment amount (₹${payAmount}) exceeds remaining balance of ₹${currentRemaining}` 
+      });
+    }
+
+    const newPaidTotal = currentPaid + payAmount;
+    const newRemaining = Math.max(0, netSalary - newPaidTotal);
+    const isFullPayment = newRemaining === 0;
+
+    record.status = isFullPayment ? 'Paid' : 'Partial';
+
+    if (!record.paymentDetails) {
+      record.paymentDetails = {
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+        transactionReference: transactionReference || '',
+        paidAmount: 0,
+        remainingAmount: netSalary,
+        history: []
+      } as any;
+    }
+
+    (record.paymentDetails as any).paymentDate = paymentDate ? new Date(paymentDate) : new Date();
+    (record.paymentDetails as any).transactionReference = transactionReference || '';
+    (record.paymentDetails as any).paidAmount = newPaidTotal;
+    (record.paymentDetails as any).remainingAmount = newRemaining;
+
+    if (!(record.paymentDetails as any).history) {
+      (record.paymentDetails as any).history = [];
+    }
+
+    (record.paymentDetails as any).history.push({
+      amount: payAmount,
+      paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+      transactionReference: transactionReference || '',
+      createdAt: new Date()
+    });
 
     await record.save();
     res.json(record);
@@ -134,7 +175,7 @@ router.get('/export/csv', authenticateToken, requireRole(['owner']), async (req,
   try {
     const records = await SalaryRecord.find().populate('employeeId', 'name role email').sort({ month: -1 });
     
-    let csv = 'Month,Employee Name,Role,Email,Status,Working Days,Present,Paid Leave,Unpaid Leave,Absent,Basic Salary,Other Earnings,Gross Salary,Deductions,Advance Recovery,Leave Deduction,Net Salary,Payment Date,Transaction Ref\n';
+    let csv = 'Month,Employee Name,Role,Email,Status,Working Days,Present,Paid Leave,Unpaid Leave,Absent,Basic Salary,Other Earnings,Gross Salary,Deductions,Advance Recovery,Leave Deduction,Net Salary,Paid Amount,Remaining Amount,Payment Date,Transaction Ref\n';
     
     records.forEach(r => {
       const emp = r.employeeId as any;
@@ -143,6 +184,9 @@ router.get('/export/csv', authenticateToken, requireRole(['owner']), async (req,
       const comp = r.components || {} as any;
       const att = r.attendance || {} as any;
       const pay = r.paymentDetails || {} as any;
+      const net = comp.netSalary || 0;
+      const paid = pay.paidAmount ?? (r.status === 'Paid' ? net : 0);
+      const remaining = pay.remainingAmount ?? (r.status === 'Paid' ? 0 : net);
       
       const row = [
         r.month,
@@ -161,7 +205,9 @@ router.get('/export/csv', authenticateToken, requireRole(['owner']), async (req,
         comp.deductions || 0,
         comp.advanceRecovery || 0,
         comp.leaveDeduction || 0,
-        comp.netSalary || 0,
+        net,
+        paid,
+        remaining,
         pay.paymentDate ? new Date(pay.paymentDate).toISOString().split('T')[0] : '',
         pay.transactionReference || ''
       ];

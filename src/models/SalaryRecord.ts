@@ -28,13 +28,21 @@ const salaryRecordSchema = new mongoose.Schema({
 
   status: { 
     type: String, 
-    enum: ['Draft', 'Calculated', 'Paid'], 
+    enum: ['Draft', 'Calculated', 'Paid', 'Partial'], 
     default: 'Draft' 
   },
   
   paymentDetails: {
     paymentDate: { type: Date },
-    transactionReference: { type: String }
+    transactionReference: { type: String },
+    paidAmount: { type: Number, default: 0 },
+    remainingAmount: { type: Number, default: 0 },
+    history: [{
+      amount: { type: Number, required: true },
+      paymentDate: { type: Date, default: Date.now },
+      transactionReference: { type: String, default: '' },
+      createdAt: { type: Date, default: Date.now }
+    }]
   }
 }, { timestamps: true });
 
