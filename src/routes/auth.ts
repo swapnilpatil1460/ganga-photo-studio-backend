@@ -96,6 +96,7 @@ router.post(
       
       user.isOnline = true;
       user.lastActiveAt = new Date();
+      user.lastLoginAt = new Date();
       await user.save();
       
       await ActivityLog.create({
@@ -130,6 +131,7 @@ router.post('/logout', async (req, res) => {
         const user = await User.findById(decoded.userId);
         if (user) {
           user.isOnline = false;
+          user.lastActiveAt = new Date();
           await user.save();
           
           await ActivityLog.create({

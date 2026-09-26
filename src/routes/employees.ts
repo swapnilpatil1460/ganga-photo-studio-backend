@@ -28,7 +28,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const emails = employees.map((e: any) => String(e.email || '').toLowerCase());
     const users = await User.find({ 
       email: { $in: emails } 
-    }).select('email isOnline lastActiveAt').lean();
+    }).select('email isOnline lastActiveAt lastLoginAt').lean();
     
     const userMap = new Map((users as any[]).map(u => [String(u.email || '').toLowerCase(), u]));
 
@@ -38,7 +38,8 @@ router.get('/', authenticateToken, async (req, res) => {
       return {
         ...emp,
         isOnline,
-        lastActiveAt: user?.lastActiveAt
+        lastActiveAt: user?.lastActiveAt,
+        lastLoginAt: user?.lastLoginAt
       };
     });
 
@@ -133,15 +134,17 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     let isOnline = false;
     let lastActiveAt: Date | undefined;
+    let lastLoginAt: Date | undefined;
     if (employee.email) {
-      const user: any = await User.findOne({ email: String(employee.email).toLowerCase() }).select('isOnline lastActiveAt').lean();
+      const user: any = await User.findOne({ email: String(employee.email).toLowerCase() }).select('isOnline lastActiveAt lastLoginAt').lean();
       if (user?.isOnline && user?.lastActiveAt && (Date.now() - new Date(user.lastActiveAt).getTime() < 3 * 60 * 1000)) {
         isOnline = true;
       }
       lastActiveAt = user?.lastActiveAt;
+      lastLoginAt = user?.lastLoginAt;
     }
 
-    res.json({ ...employee, isOnline, lastActiveAt });
+    res.json({ ...employee, isOnline, lastActiveAt, lastLoginAt });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching employee' });
   }

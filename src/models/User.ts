@@ -17,7 +17,8 @@ const userSchema = new mongoose.Schema({
     gstId: { type: String, default: '' }
   },
   isOnline: { type: Boolean, default: false },
-  lastActiveAt: { type: Date, default: Date.now }
+  lastActiveAt: { type: Date, default: Date.now },
+  lastLoginAt: { type: Date, default: Date.now }
 });
 
 userSchema.pre('save', async function() {
