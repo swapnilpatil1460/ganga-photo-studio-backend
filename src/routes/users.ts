@@ -61,6 +61,26 @@ router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), as
   }
 });
 
+// PUT update password manually
+router.put('/:id/password', authenticateToken, requireRole(['owner']), async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    const user = await User.findById(String(req.params.id));
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.password = String(newPassword);
+    await user.save(); // User schema has a pre-save hook that hashes the password
+
+    res.json({ message: 'Password updated successfully', credentials: { email: user.email, password: newPassword } });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error updating password', error: error.message || 'Unknown error' });
+  }
+});
+
 // GET password for user (Owner only)
 router.get('/:id/password', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
