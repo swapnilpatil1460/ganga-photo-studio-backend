@@ -9,6 +9,7 @@ import orderRoutes from './routes/orders';
 import userRoutes from './routes/users';
 import scheduleRouter from './routes/schedule';
 import settingsRoutes from './routes/settings';
+import activityRoutes from './routes/activity';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 
@@ -60,5 +61,6 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/schedule', scheduleRouter);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/activity', activityRoutes);
 
 export default app;

@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import { User } from '../models/User';
+import { ActivityLog } from '../models/ActivityLog';
 
 const router = express.Router();
 
@@ -62,6 +63,18 @@ router.post(
         { expiresIn: '8h' }
       );
       
+      user.isOnline = true;
+      user.lastActiveAt = new Date();
+      await user.save();
+      
+      await ActivityLog.create({
+        user: user._id,
+        email: user.email,
+        action: 'Logged in',
+        details: 'User logged into the system',
+        ipAddress: req.ip
+      });
+
       res.cookie('token', token, {
         httpOnly: true,
         secure: true,
@@ -77,13 +90,55 @@ router.post(
   }
 );
 
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+        const user = await User.findById(decoded.userId);
+        if (user) {
+          user.isOnline = false;
+          await user.save();
+          
+          await ActivityLog.create({
+            user: user._id,
+            email: user.email,
+            action: 'Logged out',
+            details: 'User logged out of the system',
+            ipAddress: req.ip
+          });
+        }
+      } catch (err) {
+        // Token invalid or expired, just proceed to clear cookie
+      }
+    }
+  } catch (error) {
+    console.error('Logout logging error:', error);
+  }
+
   res.clearCookie('token', {
     httpOnly: true,
     secure: true,
     sameSite: 'none'
   });
   res.json({ message: 'Logged out successfully' });
+});
+
+router.post('/ping', async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+      await User.findByIdAndUpdate(decoded.userId, {
+        isOnline: true,
+        lastActiveAt: new Date()
+      });
+    }
+  } catch (error) {
+    // Ignore errors for ping
+  }
+  res.json({ status: 'ok' });
 });
 
 export default router;

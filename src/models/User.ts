@@ -15,7 +15,9 @@ const userSchema = new mongoose.Schema({
     phone: { type: String, default: '' },
     address: { type: String, default: '' },
     gstId: { type: String, default: '' }
-  }
+  },
+  isOnline: { type: Boolean, default: false },
+  lastActiveAt: { type: Date, default: Date.now }
 });
 
 userSchema.pre('save', async function() {
