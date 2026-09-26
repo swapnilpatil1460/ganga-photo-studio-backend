@@ -80,7 +80,7 @@ router.post('/calculate', authenticateToken, requireRole(['owner', 'manager']), 
       record.attendance = attendance;
       record.components = {
         basicSalary, allowances, overtime, incentive, otherEarnings,
-        deductions, advanceRecovery, grossSalary, netSalary
+        deductions, advanceRecovery, leaveDeduction, grossSalary, netSalary
       };
       record.status = 'Calculated';
       await record.save();
@@ -91,7 +91,7 @@ router.post('/calculate', authenticateToken, requireRole(['owner', 'manager']), 
         attendance,
         components: {
           basicSalary, allowances, overtime, incentive, otherEarnings,
-          deductions, advanceRecovery, grossSalary, netSalary
+          deductions, advanceRecovery, leaveDeduction, grossSalary, netSalary
         },
         status: 'Calculated'
       });

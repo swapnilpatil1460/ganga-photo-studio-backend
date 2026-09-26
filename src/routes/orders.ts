@@ -233,7 +233,7 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
     const prevStatus = order.status;
     order.status = status;
     order.timeline.push({ status, timestamp: new Date() });
-    order.activityLogs.push({
+    (order.activityLogs as any).push({
       changedBy,
       changedAt: new Date(),
       previousStatus: prevStatus,
@@ -297,7 +297,7 @@ router.put('/:id/payment', authenticateToken, async (req, res) => {
     
     const prevPaid = order.paidAmount || 0;
     order.paidAmount = prevPaid + Number(amount);
-    if (!order.activityLogs) order.activityLogs = [];
+    if (!order.activityLogs) (order as any).activityLogs = [];
     order.activityLogs.push({
       changedBy,
       changedAt: new Date(),

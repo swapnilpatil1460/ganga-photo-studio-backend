@@ -225,7 +225,7 @@ router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), as
 
     // Log the activity
     await EmployeeActivity.create({
-      employeeId: req.user?.userId || 'System',
+      employeeId: (req as any).user?.userId || 'System',
       employeeName: 'Owner',
       actionType: 'System',
       orderId: 'SYS-AUTH',

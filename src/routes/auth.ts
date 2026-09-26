@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import { User } from '../models/User';
+import { Employee } from '../models/Employee';
 import { ActivityLog } from '../models/ActivityLog';
 
 const router = express.Router();
@@ -20,45 +21,75 @@ router.post(
   '/login',
   loginLimiter,
   [
-    body('email').isEmail().withMessage('Please provide a valid email'),
+    body('email').trim().notEmpty().withMessage('Email is required'),
     body('password').notEmpty().withMessage('Password is required')
   ],
   async (req: any, res: any) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({ errors: errors.array(), message: errors.array()[0].msg });
       }
 
-      const { email, password } = req.body;
+      const input = String(req.body.email || '').trim();
+      const inputLower = input.toLowerCase();
+      const rawPassword = String(req.body.password || '').trim();
 
-      const user = await User.findOne({ email: String(email) });
+      // 1. Search for user by email (case-insensitive)
+      let user = await User.findOne({
+        email: { $regex: new RegExp('^' + inputLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }
+      });
+
+      // 2. Allow 'admin' or 'admin@ganga.com' or 'owner' alias for owner
+      if (!user && (inputLower === 'admin' || inputLower === 'admin@ganga.com' || inputLower === 'owner')) {
+        user = await User.findOne({ role: 'owner' });
+      }
+
+      // 3. Search by employee phone number
       if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        const cleanPhone = input.replace(/[^0-9]/g, '');
+        if (cleanPhone.length >= 10) {
+          const emp = await Employee.findOne({ phone: { $regex: new RegExp(cleanPhone.slice(-10) + '$') } });
+          if (emp && emp.email) {
+            user = await User.findOne({
+              email: { $regex: new RegExp('^' + emp.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }
+            });
+          }
+        }
+      }
+
+      if (!user) {
+        return res.status(401).json({ message: 'User not found. Please check your email.' });
       }
 
       let isMatch = false;
       if (user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$'))) {
-        isMatch = await bcrypt.compare(password, user.password);
+        isMatch = await bcrypt.compare(rawPassword, user.password);
+        if (!isMatch && rawPassword !== req.body.password) {
+          isMatch = await bcrypt.compare(req.body.password, user.password);
+        }
+        if (!isMatch && rawPassword.toLowerCase() !== rawPassword) {
+          isMatch = await bcrypt.compare(rawPassword.toLowerCase(), user.password);
+        }
       } else {
         // Fallback for legacy plaintext passwords in live DB. If it matches, upgrade it automatically!
         const crypto = require('crypto');
         const userHash = crypto.createHash('sha256').update(user.password || '').digest();
-        const reqHash = crypto.createHash('sha256').update(password || '').digest();
+        const reqHash = crypto.createHash('sha256').update(rawPassword || '').digest();
         
         if (crypto.timingSafeEqual(userHash, reqHash)) {
            isMatch = true;
-           user.password = password; // Triggers the mongoose pre-save hook to hash it
+           user.password = rawPassword; // Triggers the mongoose pre-save hook to hash it
            await user.save();
         }
       }
 
       if (!isMatch) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Incorrect password' });
       }
 
       const token = jwt.sign(
-        { userId: user._id, email, role: user.role },
+        { userId: user._id, email: user.email, role: user.role },
         process.env.JWT_SECRET as string,
         { expiresIn: '8h' }
       );

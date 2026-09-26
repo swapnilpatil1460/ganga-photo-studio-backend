@@ -43,7 +43,7 @@ orderSchema.index({ customer: 1 });
 // Pre-save hook to generate orderId
 orderSchema.pre('save', async function () {
   if (this.isNew) {
-    const lastOrder = await mongoose.model('Order').findOne().sort({ createdAt: -1 });
+    const lastOrder: any = await mongoose.model('Order').findOne().sort({ createdAt: -1 });
     if (lastOrder && lastOrder.orderId) {
       const parts = lastOrder.orderId.split('-');
       let lastNumber = 2000;

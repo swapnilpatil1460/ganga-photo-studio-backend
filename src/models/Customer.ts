@@ -19,7 +19,7 @@ customerSchema.index({ deleted: 1 });
 // Pre-save hook to generate customerId
 customerSchema.pre('save', async function () {
   if (this.isNew) {
-    const lastCustomer = await mongoose.model('Customer').findOne().sort({ createdAt: -1 });
+    const lastCustomer: any = await mongoose.model('Customer').findOne().sort({ createdAt: -1 });
     if (lastCustomer && lastCustomer.customerId) {
       // Assuming format CUS-1001
       const parts = lastCustomer.customerId.split('-');
