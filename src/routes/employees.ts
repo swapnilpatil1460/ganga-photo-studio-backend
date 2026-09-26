@@ -19,12 +19,31 @@ router.get('/', authenticateToken, async (req, res) => {
     const employees = await Employee.find()
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
       
     const total = await Employee.countDocuments();
 
+    // Attach online status from User accounts
+    const emails = employees.map((e: any) => String(e.email || '').toLowerCase());
+    const users = await User.find({ 
+      email: { $in: emails } 
+    }).select('email isOnline lastActiveAt').lean();
+    
+    const userMap = new Map((users as any[]).map(u => [String(u.email || '').toLowerCase(), u]));
+
+    const enrichedEmployees = employees.map((emp: any) => {
+      const user = userMap.get(String(emp.email || '').toLowerCase());
+      const isOnline = !!(user?.isOnline && user?.lastActiveAt && (Date.now() - new Date(user.lastActiveAt).getTime() < 3 * 60 * 1000));
+      return {
+        ...emp,
+        isOnline,
+        lastActiveAt: user?.lastActiveAt
+      };
+    });
+
     res.json({
-      data: employees,
+      data: enrichedEmployees,
       pagination: {
         total,
         page,
@@ -109,9 +128,20 @@ router.put('/:id/status', authenticateToken, requireRole(['owner']), async (req,
 // GET single employee details
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const employee = await Employee.findById(String(req.params.id));
+    const employee: any = await Employee.findById(String(req.params.id)).lean();
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
-    res.json(employee);
+
+    let isOnline = false;
+    let lastActiveAt: Date | undefined;
+    if (employee.email) {
+      const user: any = await User.findOne({ email: String(employee.email).toLowerCase() }).select('isOnline lastActiveAt').lean();
+      if (user?.isOnline && user?.lastActiveAt && (Date.now() - new Date(user.lastActiveAt).getTime() < 3 * 60 * 1000)) {
+        isOnline = true;
+      }
+      lastActiveAt = user?.lastActiveAt;
+    }
+
+    res.json({ ...employee, isOnline, lastActiveAt });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching employee' });
   }
