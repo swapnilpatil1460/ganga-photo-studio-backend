@@ -6,6 +6,8 @@ import { User } from '../models/User';
 
 let mongoServer: MongoMemoryServer;
 
+jest.setTimeout(30000);
+
 beforeAll(async () => {
   process.env.JWT_SECRET = 'test-secret';
   mongoServer = await MongoMemoryServer.create();

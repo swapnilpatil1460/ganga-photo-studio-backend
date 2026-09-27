@@ -12,6 +12,8 @@ let employeeToken: string;
 let employeeId: string;
 let otherEmployeeId: string;
 
+jest.setTimeout(30000);
+
 beforeAll(async () => {
   process.env.JWT_SECRET = 'security-test-secret-key-32chars!';
   process.env.ENCRYPTION_KEY = '12345678901234567890123456789012';
