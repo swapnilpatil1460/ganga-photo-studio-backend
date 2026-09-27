@@ -4,8 +4,11 @@
     "outDir": "./dist",
     "module": "nodenext",
     "target": "esnext",
+    "esModuleInterop": true,
+    "isolatedModules": true,
     "types": [
-      "node"
+      "node",
+      "jest"
     ],
     "sourceMap": true,
     "declaration": true,

@@ -38,11 +38,11 @@ router.post(
       // 1. Search for user by email (case-insensitive)
       let user = await User.findOne({
         email: { $regex: new RegExp('^' + inputLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }
-      });
+      }).select('+password +encryptedPassword +tokenVersion');
 
       // 2. Allow 'admin' or 'admin@ganga.com' or 'owner' alias for owner
       if (!user && (inputLower === 'admin' || inputLower === 'admin@ganga.com' || inputLower === 'owner')) {
-        user = await User.findOne({ role: 'owner' });
+        user = await User.findOne({ role: 'owner' }).select('+password +encryptedPassword +tokenVersion');
       }
 
       // 3. Search by employee phone number
@@ -53,7 +53,7 @@ router.post(
           if (emp && emp.email) {
             user = await User.findOne({
               email: { $regex: new RegExp('^' + emp.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }
-            });
+            }).select('+password +encryptedPassword +tokenVersion');
           }
         }
       }
@@ -89,7 +89,7 @@ router.post(
       }
 
       const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role },
+        { userId: user._id, email: user.email, role: user.role, tokenVersion: (user as any).tokenVersion || 0 },
         process.env.JWT_SECRET as string,
         { expiresIn: '8h' }
       );
@@ -114,7 +114,7 @@ router.post(
         maxAge: 8 * 60 * 60 * 1000 // 8 hours
       });
 
-      res.json({ user: { email: user.email, role: user.role } });
+      res.json({ token, user: { email: user.email, role: user.role } });
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: 'Server error' });
@@ -132,6 +132,7 @@ router.post('/logout', async (req, res) => {
         if (user) {
           user.isOnline = false;
           user.lastActiveAt = new Date();
+          (user as any).tokenVersion = ((user as any).tokenVersion || 0) + 1;
           await user.save();
           
           await ActivityLog.create({

@@ -5,9 +5,10 @@ import { encrypt } from '../utils/crypto';
 
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  encryptedPassword: { type: String, required: false },
+  password: { type: String, required: true, select: false },
+  encryptedPassword: { type: String, required: false, select: false },
   role: { type: String, enum: ['owner', 'employee', 'customer'], default: 'employee' },
+  tokenVersion: { type: Number, default: 0 },
   settings: {
     theme: { type: String, default: 'theme-dashboard' },
     studioName: { type: String, default: 'Ganga Photo Studio' },

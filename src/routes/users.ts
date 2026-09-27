@@ -1,5 +1,6 @@
 import express from 'express';
 import { User } from '../models/User';
+import { Employee } from '../models/Employee';
 import { authenticateToken } from '../middleware/auth';
 import { requireRole } from '../middleware/roles';
 
@@ -9,7 +10,7 @@ const router = express.Router();
 router.get('/', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
     // Passwords are now hashed and properly excluded from API responses for security.
-    const users = await User.find({}).select('-password').sort({ _id: -1 });
+    const users = await User.find({}).sort({ _id: -1 });
     res.json(users);
   } catch (error: any) {
     res.status(500).json({ message: 'Error fetching users', error: error.message || 'Unknown error' });
@@ -21,6 +22,10 @@ router.delete('/:id', authenticateToken, requireRole(['owner']), async (req, res
   try {
     const deletedUser = await User.findByIdAndDelete(String(req.params.id));
     if (!deletedUser) return res.status(404).json({ message: 'User not found' });
+    
+    // Clean up corresponding Employee document if any
+    await Employee.findOneAndDelete({ email: deletedUser.email });
+    
     res.json({ message: 'User deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ message: 'Error deleting user', error: error.message || 'Unknown error' });
@@ -53,6 +58,7 @@ router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), as
 
     const newPassword = generatePassword(user.email);
     user.password = newPassword;
+    (user as any).tokenVersion = ((user as any).tokenVersion || 0) + 1;
     await user.save(); // User schema has a pre-save hook that hashes the password
 
     res.json({ message: 'Password reset successfully', credentials: { email: user.email, password: newPassword } });
@@ -73,6 +79,7 @@ router.put('/:id/password', authenticateToken, requireRole(['owner']), async (re
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     user.password = String(newPassword);
+    (user as any).tokenVersion = ((user as any).tokenVersion || 0) + 1;
     await user.save(); // User schema has a pre-save hook that hashes the password
 
     res.json({ message: 'Password updated successfully', credentials: { email: user.email, password: newPassword } });
@@ -84,7 +91,7 @@ router.put('/:id/password', authenticateToken, requireRole(['owner']), async (re
 // GET password for user (Owner only)
 router.get('/:id/password', authenticateToken, requireRole(['owner']), async (req, res) => {
   try {
-    const user = await User.findById(String(req.params.id));
+    const user = await User.findById(String(req.params.id)).select('+encryptedPassword');
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (!user.encryptedPassword) return res.status(400).json({ message: 'Password is encrypted with older one-way hash. Please reset the password once to enable viewing.' });
 

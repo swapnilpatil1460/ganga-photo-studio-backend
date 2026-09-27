@@ -3,3 +3,6 @@ node_modules/
 dist/
 *.log
 .DS_Store
+backups/
+*.gz.enc
+*.bak

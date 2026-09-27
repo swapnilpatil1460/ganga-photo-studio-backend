@@ -35,12 +35,17 @@ router.get('/', authenticateToken, async (req, res) => {
     const enrichedEmployees = employees.map((emp: any) => {
       const user = userMap.get(String(emp.email || '').toLowerCase());
       const isOnline = !!(user?.isOnline && user?.lastActiveAt && (Date.now() - new Date(user.lastActiveAt).getTime() < 3 * 60 * 1000));
-      return {
+      const resItem: any = {
         ...emp,
         isOnline,
         lastActiveAt: user?.lastActiveAt,
         lastLoginAt: user?.lastLoginAt
       };
+      // IDOR protection: only owner or the employee themselves can see salaryStructure
+      if ((req as any).user?.role !== 'owner' && (req as any).user?.email?.toLowerCase() !== String(emp.email || '').toLowerCase()) {
+        delete resItem.salaryStructure;
+      }
+      return resItem;
     });
 
     res.json({
@@ -60,7 +65,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // POST new employee
 router.post('/', authenticateToken, requireRole(['owner']), employeeValidators, validateRequest, async (req, res) => {
   try {
-    const empData = req.body;
+    const { name, email, phone, role, photo, status, salaryStructure } = req.body;
     
     const generatePassword = (name: string) => {
       const firstName = (name.split(' ')[0] || 'User').replace(/[^a-zA-Z]/g, '');
@@ -70,22 +75,26 @@ router.post('/', authenticateToken, requireRole(['owner']), employeeValidators, 
       const symbols = "!@#$%^&*";
       
       let suffix = "";
-      // Add 3 random numbers and 1 symbol
       for (let i = 0; i < 3; i++) suffix += numbers[Math.floor(Math.random() * 10)];
       suffix += symbols[Math.floor(Math.random() * symbols.length)];
       
       let password = baseName + suffix;
-      
-      // Ensure at least 8 characters
       while (password.length < 8) {
         password += numbers[Math.floor(Math.random() * 10)];
       }
-      
       return password;
     };
-    const generatedPassword = generatePassword(empData.name || '');
+    const generatedPassword = generatePassword(name || '');
 
-    const employee = new Employee(empData);
+    const employee = new Employee({
+      name: String(name || '').trim(),
+      email: String(email || '').trim().toLowerCase(),
+      phone: String(phone || '').trim(),
+      role,
+      photo,
+      status: status || 'Active',
+      salaryStructure: salaryStructure || { basicSalary: 0, allowances: 0 }
+    });
     const savedEmployee = await employee.save();
     
     // Create User account for the employee
@@ -105,12 +114,47 @@ router.post('/', authenticateToken, requireRole(['owner']), employeeValidators, 
 // PUT update employee (full update)
 router.put('/:id', authenticateToken, requireRole(['owner']), employeeValidators, validateRequest, async (req, res) => {
   try {
-    const empData = req.body;
-    const employee = await Employee.findByIdAndUpdate(String(req.params.id), empData, { new: true, runValidators: true });
+    const { name, phone, role, photo, status, salaryStructure } = req.body;
+    const allowedUpdates: any = {};
+    if (name !== undefined) allowedUpdates.name = String(name).trim();
+    if (phone !== undefined) allowedUpdates.phone = String(phone).trim();
+    if (role !== undefined) allowedUpdates.role = role;
+    if (photo !== undefined) allowedUpdates.photo = photo;
+    if (status !== undefined) allowedUpdates.status = status;
+    if (salaryStructure !== undefined) allowedUpdates.salaryStructure = salaryStructure;
+
+    const employee = await Employee.findByIdAndUpdate(String(req.params.id), allowedUpdates, { new: true, runValidators: true });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     res.json(employee);
   } catch (error: any) {
     res.status(400).json({ message: 'Error updating employee', error: error.message || 'Unknown error' });
+  }
+});
+
+// DELETE employee and associated user account
+router.delete('/:id', authenticateToken, requireRole(['owner']), async (req, res) => {
+  try {
+    const employee = await Employee.findById(String(req.params.id));
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    // Clean up corresponding User account
+    if (employee.email) {
+      await User.findOneAndDelete({ email: employee.email });
+    }
+
+    await Employee.findByIdAndDelete(String(req.params.id));
+
+    await EmployeeActivity.create({
+      employeeId: (req as any).user?.userId || 'System',
+      employeeName: 'Owner',
+      actionType: 'System',
+      orderId: 'SYS-DELETE',
+      description: `Deleted employee ${employee.name} (${employee.email})`
+    });
+
+    res.json({ message: 'Employee and user account deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error deleting employee', error: error.message || 'Unknown error' });
   }
 });
 
@@ -131,6 +175,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const employee: any = await Employee.findById(String(req.params.id)).lean();
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    const userRole = (req as any).user?.role;
+    const userEmail = (req as any).user?.email?.toLowerCase();
+    const empEmail = String(employee.email || '').toLowerCase();
+    
+    // IDOR protection: only owner or the employee themselves can see salaryStructure
+    if (userRole !== 'owner' && userEmail !== empEmail) {
+      delete employee.salaryStructure;
+    }
 
     let isOnline = false;
     let lastActiveAt: Date | undefined;
@@ -153,6 +206,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // GET employee activities
 router.get('/:id/activities', authenticateToken, async (req, res) => {
   try {
+    const employee = await Employee.findById(String(req.params.id));
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    const userRole = (req as any).user?.role;
+    const userEmail = (req as any).user?.email?.toLowerCase();
+    if (userRole !== 'owner' && userEmail !== String(employee.email || '').toLowerCase()) {
+      return res.status(403).json({ message: 'Forbidden: You cannot access activities of another employee' });
+    }
+
     const activities = await EmployeeActivity.find({ employeeId: req.params.id }).sort({ timestamp: -1 });
     res.json(activities);
   } catch (error) {
@@ -168,6 +230,12 @@ router.get('/:id/dashboard', authenticateToken, async (req, res) => {
     const employee = await Employee.findById(employeeId);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     
+    const userRole = (req as any).user?.role;
+    const userEmail = (req as any).user?.email?.toLowerCase();
+    if (userRole !== 'owner' && userEmail !== String(employee.email || '').toLowerCase()) {
+      return res.status(403).json({ message: 'Forbidden: You cannot access dashboard metrics of another employee' });
+    }
+
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -248,11 +316,13 @@ router.post('/:id/reset-password', authenticateToken, requireRole(['owner']), as
       const newUser = new User({
         email: employee.email,
         password: newPassword,
-        role: employee.role === 'Owner' ? 'owner' : 'employee'
+        role: employee.role === 'Owner' ? 'owner' : 'employee',
+        tokenVersion: 1
       });
       await newUser.save();
     } else {
       user.password = newPassword;
+      (user as any).tokenVersion = ((user as any).tokenVersion || 0) + 1;
       await user.save(); // User schema has a pre-save hook that hashes the password
     }
 
@@ -277,7 +347,7 @@ router.get('/:id/password', authenticateToken, requireRole(['owner']), async (re
     const employee = await Employee.findById(String(req.params.id));
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     
-    const user = await User.findOne({ email: String(employee.email) });
+    const user = await User.findOne({ email: String(employee.email) }).select('+encryptedPassword');
     if (!user) return res.status(404).json({ message: 'User record not found' });
     
     if (!user.encryptedPassword) return res.status(400).json({ message: 'Password is encrypted with older one-way hash. Please reset the password once to enable viewing.' });

@@ -11,6 +11,7 @@ import scheduleRouter from './routes/schedule';
 import settingsRoutes from './routes/settings';
 import activityRoutes from './routes/activity';
 import salaryRoutes from './routes/salary';
+import backupRoutes from './routes/backup';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 
@@ -64,5 +65,17 @@ app.use('/api/schedule', scheduleRouter);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/salary', salaryRoutes);
+app.use('/api/backup', backupRoutes);
+
+// Centralized error sanitizer (prevents internal stack traces/details from leaking in production)
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const statusCode = err.status || err.statusCode || 500;
+  const isProd = process.env.NODE_ENV === 'production';
+  console.error('[Production Error Handler]', err);
+  res.status(statusCode).json({
+    message: isProd && statusCode === 500 ? 'Internal Server Error' : (err.message || 'An unexpected error occurred'),
+    ...(isProd ? {} : { stack: err.stack })
+  });
+});
 
 export default app;
