@@ -6,6 +6,7 @@ import app from './app';
 import bcrypt from 'bcryptjs';
 import { User } from './models/User';
 import { Service } from './models/Service';
+import { startScheduler } from './services/backupScheduler.service';
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'fallback_secret') {
   console.error('FATAL ERROR: JWT_SECRET is not properly configured in the environment variables.');
@@ -81,6 +82,7 @@ async function startServer() {
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    startScheduler();
   });
 }
 

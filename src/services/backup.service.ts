@@ -6,6 +6,7 @@ import { promisify } from 'util';
 import mongoose from 'mongoose';
 import { BackupRecord } from '../models/BackupRecord';
 import { BackupSettings } from '../models/BackupSettings';
+import { uploadToDrive } from './googleDrive.service';
 
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
@@ -39,6 +40,16 @@ export function decryptBuffer(data: Buffer): Buffer {
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
   return Buffer.concat([decipher.update(ct), decipher.final()]);
+}
+
+export function encryptString(plaintext: string): string {
+  const buf = encryptBuffer(Buffer.from(plaintext, 'utf8'));
+  return buf.toString('base64');
+}
+
+export function decryptString(base64Ciphertext: string): string {
+  const buf = decryptBuffer(Buffer.from(base64Ciphertext, 'base64'));
+  return buf.toString('utf8');
 }
 
 export function getLocalBackupDir(): string {
@@ -131,7 +142,28 @@ export async function runBackup(triggeredBy: 'scheduled' | 'manual', performedBy
     // 5. Prune older backups according to retention
     pruneLocalBackups(settings.retention || 7);
 
-    // 6. Update record to success
+    // 6. Optional: Upload to Google Drive if connected
+    if (settings.driveConnected && settings.encryptedRefreshToken) {
+      try {
+        const refreshToken = decryptString(settings.encryptedRefreshToken);
+        const driveRes = await uploadToDrive(
+          refreshToken,
+          encrypted,
+          filename,
+          settings.googleDriveFolderId
+        );
+        record.driveFileId = driveRes.fileId;
+        record.driveUploadStatus = 'uploaded';
+      } catch (driveErr: any) {
+        console.warn('[Backup] Google Drive upload failed:', driveErr.message);
+        record.driveUploadStatus = 'failed';
+        record.errorMessage = (record.errorMessage ? record.errorMessage + '; ' : '') + `Drive upload error: ${driveErr.message}`;
+      }
+    } else {
+      record.driveUploadStatus = 'skipped';
+    }
+
+    // 7. Update record to success
     record.status = 'success';
     await record.save();
 

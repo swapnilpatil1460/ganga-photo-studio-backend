@@ -7,6 +7,8 @@ export interface BackupSettingsDocument extends Document {
   weekDay: number;              // 0=Sun … 6=Sat
   retention: number;            // 7 | 30 | -1 (keep all)
   folderName: string;
+  googleDriveLink?: string;
+  googleDriveFolderId?: string;
   encryptedRefreshToken?: string;
   driveConnected: boolean;
   connectedEmail?: string;
@@ -17,11 +19,13 @@ export interface BackupSettingsDocument extends Document {
 const backupSettingsSchema = new Schema<BackupSettingsDocument>(
   {
     enabled:                { type: Boolean,  default: false },
-    frequency:              { type: String,   enum: ['daily', 'weekly'], default: 'daily' },
+    frequency:              { type: String,   enum: ['daily', 'weekly'], default: 'weekly' },
     backupTime:             { type: String,   default: '02:00' },
     weekDay:                { type: Number,   default: 0, min: 0, max: 6 },
     retention:              { type: Number,   default: 7 },
     folderName:             { type: String,   default: 'Photo Studio ERP Backups' },
+    googleDriveLink:        { type: String },
+    googleDriveFolderId:    { type: String },
     encryptedRefreshToken:  { type: String },
     driveConnected:         { type: Boolean,  default: false },
     connectedEmail:         { type: String },
