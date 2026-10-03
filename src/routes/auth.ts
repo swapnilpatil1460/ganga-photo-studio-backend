@@ -21,8 +21,8 @@ router.post(
   '/login',
   loginLimiter,
   [
-    body('email').trim().notEmpty().withMessage('Email is required'),
-    body('password').notEmpty().withMessage('Password is required')
+    body('email').isString().withMessage('Email must be a string').trim().notEmpty().withMessage('Email is required'),
+    body('password').isString().withMessage('Password must be a string').notEmpty().withMessage('Password is required')
   ],
   async (req: any, res: any) => {
     try {

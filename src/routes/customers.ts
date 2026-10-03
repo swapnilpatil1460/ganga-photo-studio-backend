@@ -14,13 +14,19 @@ router.get('/', authenticateToken, async (req, res) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const { name, phone, email, dateFilter } = req.query;
+    // ⚠️ Security fix: guard all query params to be string-only.
+    // Express parses `name[$ne]=` as { name: { $ne: '' } } — if we don't guard,
+    // Mongoose interprets the operator directly (confirmed NoSQL injection vector).
+    const name      = typeof req.query.name      === 'string' ? req.query.name      : undefined;
+    const phone     = typeof req.query.phone     === 'string' ? req.query.phone     : undefined;
+    const email     = typeof req.query.email     === 'string' ? req.query.email     : undefined;
+    const dateFilter = typeof req.query.dateFilter === 'string' ? req.query.dateFilter : undefined;
 
     let query: any = { deleted: false };
     
-    if (name) query.name = { $regex: String(name), $options: 'i' };
-    if (phone) query.phone = { $regex: String(phone), $options: 'i' };
-    if (email) query.email = { $regex: String(email), $options: 'i' };
+    if (name)  query.name  = { $regex: name,  $options: 'i' };
+    if (phone) query.phone = { $regex: phone, $options: 'i' };
+    if (email) query.email = { $regex: email, $options: 'i' };
     
     if (dateFilter) {
       const now = new Date();
