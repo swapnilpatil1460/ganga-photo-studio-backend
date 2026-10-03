@@ -51,10 +51,15 @@ app.use(cors({
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
+import { requireCsrfHeader } from './middleware/csrfProtection';
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Apply CSRF protection to all API routes
+app.use('/api', requireCsrfHeader);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);

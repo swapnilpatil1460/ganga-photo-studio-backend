@@ -110,7 +110,7 @@ router.post(
       res.cookie('token', token, {
         httpOnly: true,
         secure: true,
-        sameSite: 'none',
+        sameSite: 'strict', // CSRF Fix: Enforce Strict origin policy
         maxAge: 8 * 60 * 60 * 1000 // 8 hours
       });
 
